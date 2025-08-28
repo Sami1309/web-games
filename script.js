@@ -61,7 +61,7 @@
   const toastEl = document.getElementById('toast');
   const resetBtn = document.getElementById('resetBtn');
   const dateLabel = document.getElementById('dateLabel');
-  dateLabel.textContent = `PDT date: ${getLA_YMD().label}`;
+  dateLabel.textContent = ``;
 
   // Build board (6 rows x 5 cols)
   const ROWS = 6, COLS = 5;
@@ -79,21 +79,17 @@
     }
   }
 
-  // Build on-screen keyboard
-  const rows = ['QWERTYUIOP','ASDFGHJKL','ENTERZXCVBNMDEL'];
-  rows.forEach((row, idx) => {
+  // Build on-screen keyboard (explicit tokens to avoid stray 'D','E','L')
+  const KEY_ROWS = [
+    ['Q','W','E','R','T','Y','U','I','O','P'],
+    ['A','S','D','F','G','H','J','K','L'],
+    ['ENTER','Z','X','C','V','B','N','M','DEL']
+  ];
+  KEY_ROWS.forEach((tokens, idx) => {
     const rowEl = document.createElement('div');
     rowEl.className = 'kbd-row';
     rowEl.dataset.row = String(idx+1);
-    if(row.startsWith('ENTER')){
-      addKey('ENTER', rowEl, true);
-      for(const ch of row.slice(5)) addKey(ch, rowEl);
-    } else if(row.endsWith('DEL')){
-      for(const ch of row.slice(0,-3)) addKey(ch, rowEl);
-      addKey('DEL', rowEl, true);
-    } else {
-      for(const ch of row) addKey(ch, rowEl);
-    }
+    tokens.forEach(tok => addKey(tok, rowEl, tok.length > 1));
     keyboardEl.appendChild(rowEl);
   });
 
@@ -113,6 +109,31 @@
 
   const storageKey = 'wordle-lite-pdt-' + getLA_YMD().label;
   hydrateFromStorage();
+
+  // Dynamic tile sizing to maximize width while respecting height
+  function updateTileSize(){
+    try{
+      const root = document.documentElement;
+      const gameEl = document.querySelector('.game');
+      const headerEl = document.querySelector('.top');
+      const kbdEl = keyboardEl;
+      const cs = getComputedStyle(root);
+      const gap = parseFloat(cs.getPropertyValue('--gap')) || 6;
+      const vwH = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      const widthAvailable = gameEl.clientWidth; // includes padding
+      const tilesByW = Math.floor((widthAvailable - (5-1)*gap) / 5);
+      const heightAvailable = vwH - headerEl.offsetHeight - kbdEl.offsetHeight - 24; // margin
+      const tilesByH = Math.floor((heightAvailable - (6-1)*gap) / 6);
+      const size = Math.max(44, Math.min(tilesByW, tilesByH));
+      if(isFinite(size) && size > 0){
+        root.style.setProperty('--tile-size', size + 'px');
+      }
+    } catch {}
+  }
+  window.addEventListener('resize', updateTileSize);
+  window.addEventListener('orientationchange', updateTileSize);
+  // run once after kbd render
+  setTimeout(updateTileSize, 0);
 
   // Input handlers
   window.addEventListener('keydown', (e) => {
@@ -147,7 +168,11 @@
   const installClose = document.getElementById('installClose');
   let deferredPrompt = null;
 
-  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  const isiOS = /iphone|ipad|ipod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg|OPR|SamsungBrowser/i.test(ua);
+  const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|OPR|EdgiOS/i.test(ua);
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
   function showModal(html){
@@ -181,17 +206,43 @@
       return;
     }
     if(isiOS){
-      showModal(`
-        <p>iOS (Safari):</p>
-        <p>1) Tap the Share icon (square with arrow).</p>
-        <p>2) Choose <b>Add to Home Screen</b>.</p>
-        <p>3) Tap Add.</p>
-      `);
+      if(isSafari){
+        showModal(`
+          <p>iOS (Safari):</p>
+          <p>1) Tap the Share icon (square with arrow).</p>
+          <p>2) Choose <b>Add to Home Screen</b>.</p>
+          <p>3) Tap Add.</p>
+        `);
+      } else {
+        showModal(`
+          <p>iOS (Chrome/others):</p>
+          <p>Chrome on iOS cannot install to Home Screen directly.</p>
+          <p>Open this page in <b>Safari</b>, then:</p>
+          <p>1) Tap the Share icon (square with arrow).</p>
+          <p>2) Choose <b>Add to Home Screen</b>.</p>
+          <p>3) Tap Add.</p>
+        `);
+      }
+    } else if(isAndroid){
+      if(isChrome){
+        showModal(`
+          <p>Android (Chrome):</p>
+          <p>1) Tap the ⋮ menu in the top right.</p>
+          <p>2) Choose <b>Install app</b> or <b>Add to Home screen</b>.</p>
+          <p>3) Confirm to add.</p>
+        `);
+      } else {
+        showModal(`
+          <p>Android (other browsers):</p>
+          <p>Open the browser menu and choose <b>Add to Home screen</b> or <b>Install app</b>.</p>
+          <p>If not available, try Chrome for the best support.</p>
+        `);
+      }
     } else {
       showModal(`
-        <p>Android / other browsers:</p>
-        <p>Open the browser menu and choose <b>Add to Home screen</b> or <b>Install app</b>.</p>
-        <p>If you don't see it, your browser may not support installing pages.</p>
+        <p>Desktop:</p>
+        <p>In Chrome: open the ⋮ menu and choose <b>Install Wordle Lite</b>, or click the install icon in the address bar if present.</p>
+        <p>Other browsers may not support installation.</p>
       `);
     }
   });

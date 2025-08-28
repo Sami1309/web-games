@@ -13,22 +13,18 @@
   </head>
   <body>
     <header class="top">
-      <h1>Wordle — Lite</h1>
-      <div class="sub">Daily word keyed to PDT</div>
+      <h1>Bootleg Wordle</h1>
+      <div class="actions">
+        <button id="a2hsBtn" class="btn">Add to Home</button>
+        <button id="resetBtn" class="btn">Reset Today</button>
+        <span id="dateLabel" class="date-label"></span>
+      </div>
     </header>
 
     <main class="game">
       <section id="board" class="board" aria-label="Game board" role="grid"></section>
       <section id="keyboard" class="keyboard" aria-label="On-screen keyboard"></section>
     </main>
-
-    <footer class="foot">
-      <div style="display:flex;gap:8px;align-items:center">
-        <button id="a2hsBtn" class="btn">Add to Home</button>
-        <button id="resetBtn" class="btn">Reset Today</button>
-      </div>
-      <span id="dateLabel" class="date-label"></span>
-    </footer>
 
     <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
 
