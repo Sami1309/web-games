@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wordle (Lite, PDT)</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="top">
+      <h1>Wordle — Lite</h1>
+      <div class="sub">Daily word keyed to PDT</div>
+    </header>
+
+    <main class="game">
+      <section id="board" class="board" aria-label="Game board" role="grid"></section>
+      <section id="keyboard" class="keyboard" aria-label="On-screen keyboard"></section>
+    </main>
+
+    <footer class="foot">
+      <button id="resetBtn" class="btn">Reset Today</button>
+      <span id="dateLabel" class="date-label"></span>
+    </footer>
+
+    <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="script.js"></script>
+  </body>
+  </html>
+

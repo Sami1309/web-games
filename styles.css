@@ -1,0 +1,79 @@
+:root{
+  --bg:#121213;
+  --text:#e5e7eb;
+  --sub:#9aa0a6;
+  --tile-border:#3a3a3c;
+  --absent:#3a3a3c;
+  --present:#b59f3b;
+  --correct:#538d4e;
+  --kbd-bg:#818384;
+  --kbd-text:#fff;
+  --tile-size:56px;
+  --gap:6px;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.top{width:100%;max-width:520px;text-align:center;padding:16px 12px 8px}
+.top h1{margin:0;font-size:22px;letter-spacing:0.1em}
+.top .sub{color:var(--sub);font-size:12px;margin-top:6px}
+
+.game{width:100%;max-width:520px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:16px}
+
+.board{
+  display:grid;
+  grid-template-columns:repeat(5,var(--tile-size));
+  grid-template-rows:repeat(6,var(--tile-size));
+  gap:var(--gap);
+}
+
+.tile{
+  width:var(--tile-size);
+  height:var(--tile-size);
+  border:2px solid var(--tile-border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:28px;
+  text-transform:uppercase;
+  user-select:none;
+}
+
+.tile.filled{border-color:#565758}
+.tile.absent{background:var(--absent);border-color:var(--absent);color:#fff}
+.tile.present{background:var(--present);border-color:var(--present);color:#fff}
+.tile.correct{background:var(--correct);border-color:var(--correct);color:#fff}
+
+.keyboard{width:100%;display:flex;flex-direction:column;gap:8px;align-items:center}
+.kbd-row{display:flex;gap:6px}
+.key{background:var(--kbd-bg);color:var(--kbd-text);border:none;border-radius:4px;padding:12px 8px;min-width:32px;font-weight:600}
+.key.wide{padding:12px 14px}
+.key.absent{background:var(--absent)}
+.key.present{background:var(--present)}
+.key.correct{background:var(--correct)}
+.key:active{filter:brightness(0.95)}
+
+.foot{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;padding:12px;color:var(--sub)}
+.btn{background:#2a2a2b;color:#fff;border:1px solid #3d3d3d;border-radius:6px;padding:8px 12px;cursor:pointer}
+.btn:active{filter:brightness(0.95)}
+.date-label{font-size:12px}
+
+.toast{position:fixed;left:50%;top:12px;transform:translateX(-50%);background:#333;color:#fff;padding:10px 14px;border-radius:6px;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.toast.show{opacity:1}
+
+@media (max-width:420px){
+  :root{--tile-size:48px}
+  .key{padding:10px 6px}
+}
+
