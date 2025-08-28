@@ -61,7 +61,7 @@
   const toastEl = document.getElementById('toast');
   const resetBtn = document.getElementById('resetBtn');
   const dateLabel = document.getElementById('dateLabel');
-  dateLabel.textContent = ``;
+  if (dateLabel) dateLabel.textContent = ``;
 
   // Build board (6 rows x 5 cols)
   const ROWS = 6, COLS = 5;
@@ -96,7 +96,7 @@
   function addKey(label, rowEl, wide=false){
     const b = document.createElement('button');
     b.className = 'key' + (wide ? ' wide' : '');
-    b.textContent = label;
+    b.textContent = (label === 'DEL') ? '⌫' : label;
     b.dataset.key = label;
     b.type = 'button';
     rowEl.appendChild(b);
@@ -117,6 +117,7 @@
       const gameEl = document.querySelector('.game');
       const headerEl = document.querySelector('.top');
       const kbdEl = keyboardEl;
+      const postEl = document.getElementById('postWinActions');
       const firstRow = keyboardEl.querySelector('.kbd-row');
       const csRoot = getComputedStyle(root);
       const gap = parseFloat(csRoot.getPropertyValue('--gap')) || 6; // board gap
@@ -149,9 +150,16 @@
       tileSize = Math.max(40, tileSize);
       root.style.setProperty('--tile-size', tileSize + 'px');
 
-      // With chosen tile size, compute leftover for keyboard and set --key-h
+      // With chosen tile size, compute leftover for keyboard (+ optional post-win actions) and set --key-h
       const boardH = (rows * tileSize) + ((rows-1) * gap);
-      let leftover = availH - boardH - boardKbdGap - kbPadB - 16; // buffers
+      let postH = 0;
+      if(postEl && !postEl.hidden){
+        const csPost = getComputedStyle(postEl);
+        const mt = parseFloat(csPost.marginTop) || 0;
+        // Use existing height if laid out, else a conservative estimate
+        postH = (postEl.offsetHeight || 50) + mt;
+      }
+      let leftover = availH - boardH - boardKbdGap - kbPadB - postH - 16; // buffers
       // Key height from leftover (3 rows + 2 gaps)
       let keyH = Math.floor((leftover - 2*rowGap) / 3);
       keyH = Math.max(minKeyH, Math.min(keyH, maxKeyH));
@@ -186,16 +194,22 @@
     else onChar(key);
   });
 
-  resetBtn.addEventListener('click', () => {
-    localStorage.removeItem(storageKey);
-    window.location.reload();
-  });
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      localStorage.removeItem(storageKey);
+      window.location.reload();
+    });
+  }
 
   // Add-to-Home-Screen support and fallback instructions
   const a2hsBtn = document.getElementById('a2hsBtn');
   const installModal = document.getElementById('installModal');
   const installBody = document.getElementById('installBody');
   const installClose = document.getElementById('installClose');
+  const successModal = document.getElementById('successModal');
+  const successBody = document.getElementById('successBody');
+  const successClose = document.getElementById('successClose');
+  const postWinActions = document.getElementById('postWinActions');
   let deferredPrompt = null;
 
   const ua = navigator.userAgent;
@@ -215,19 +229,29 @@
     installModal.hidden = true;
   }
 
+  function showSuccess(){
+    if(!successModal) return;
+    successModal.hidden = false;
+    successModal.classList.add('show');
+  }
+  function hideSuccess(){
+    if(!successModal) return;
+    successModal.classList.remove('show');
+    successModal.hidden = true;
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    a2hsBtn.style.display = '';
+    if(a2hsBtn) a2hsBtn.style.display = '';
   });
 
-  if(isStandalone){
-    a2hsBtn.style.display = 'none';
-  } else {
+  if(a2hsBtn){
+    // Always show the button; fallbacks handled in click handler
     a2hsBtn.style.display = '';
   }
 
-  a2hsBtn.addEventListener('click', async () => {
+  if (a2hsBtn) a2hsBtn.addEventListener('click', async () => {
     if(deferredPrompt){
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
@@ -277,7 +301,8 @@
     }
   });
 
-  installClose.addEventListener('click', hideModal);
+  if (installClose) installClose.addEventListener('click', hideModal);
+  if (successClose) successClose.addEventListener('click', hideSuccess);
 
   function onChar(ch){
     if(curCol >= COLS || done) return;
@@ -295,7 +320,7 @@
     t.classList.remove('filled');
   }
 
-  function onEnter(){
+  async function onEnter(){
     if(curCol < COLS){
       showToast('Not enough letters');
       return;
@@ -303,11 +328,23 @@
     const guess = getGuess(curRow);
     // Optional: dictionary check could go here. We accept any 5-letter guess.
     const result = evaluateGuess(guess, answer);
-    applyResult(curRow, guess, result, true);
+    const isWin = (guess === answer);
+    applyResult(curRow, guess, result, true, () => {
+      if(isWin){
+        setTimeout(() => {
+          if(postWinActions){
+            postWinActions.hidden = false;
+            // Recompute sizes so actions are visible without scrolling
+            setTimeout(updateTileSize, 0);
+          }
+          showSuccess();
+        }, 500);
+      }
+    });
 
     persistAppendGuess(guess);
 
-    if(guess === answer){
+    if(isWin){
       done = true;
       showToast('You got it!');
       persistStatus('won');
@@ -355,10 +392,12 @@
     return res; // array of 'correct'|'present'|'absent'
   }
 
-  function applyResult(r, guess, result, animate=false){
-    const flipMs = 1000; // must match CSS .tile.flip duration
+  function applyResult(r, guess, result, animate=false, onComplete){
+    const flipMs = 650; // must match CSS .tile.flip duration
     const midMs = Math.floor(flipMs/2);
-    const baseDelay = 300; // delay between tiles
+    const baseDelay = 220; // snappier stagger between tiles
+    // Prepare keyboard updates but delay applying when animating
+    const updates = new Map(); // letter -> best state for this guess
     for(let i=0;i<COLS;i++){
       const t = tiles[r][i];
       const st = result[i];
@@ -379,13 +418,32 @@
           t.classList.add(st);
         }
       }, doAt);
-      // keyboard coloring with priority: correct > present > absent
+      // accumulate keyboard color updates (correct > present > absent)
       const ch = guess[i];
-      const prev = keyboardState.get(ch);
-      if(prev === 'correct') continue;
-      if(prev === 'present' && st === 'absent') continue;
-      keyboardState.set(ch, st);
-      colorKeyboardKey(ch, st);
+      const prevForThisGuess = updates.get(ch);
+      const rank = { absent: 0, present: 1, correct: 2 };
+      if(!prevForThisGuess || rank[st] > rank[prevForThisGuess]){
+        updates.set(ch, st);
+      }
+    }
+    // Apply keyboard updates
+    const applyKbd = () => {
+      updates.forEach((st, ch) => {
+        const prevOverall = keyboardState.get(ch);
+        if(prevOverall === 'correct') return;
+        if(prevOverall === 'present' && st === 'absent') return;
+        keyboardState.set(ch, st);
+        colorKeyboardKey(ch, st);
+      });
+    };
+    if(animate){
+      const total = (COLS - 1) * baseDelay + flipMs;
+      setTimeout(applyKbd, total);
+      if(typeof onComplete === 'function'){
+        setTimeout(onComplete, total);
+      }
+    } else {
+      applyKbd();
     }
   }
 
@@ -422,6 +480,10 @@
         curRow = i+1; curCol = 0;
       }
       if(data.status === 'won' || data.status === 'lost') done = true;
+      if(data.status === 'won' && postWinActions){
+        postWinActions.hidden = false;
+        setTimeout(updateTileSize, 0);
+      }
     } catch{}
   }
 

@@ -12,18 +12,15 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="top">
-      <h1>Bootleg Wordle</h1>
-      <div class="actions">
-        <button id="a2hsBtn" class="btn">Add to Home</button>
-        <button id="resetBtn" class="btn">Reset Today</button>
-        <span id="dateLabel" class="date-label"></span>
-      </div>
-    </header>
+    <header class="top"></header>
 
     <main class="game">
       <section id="board" class="board" aria-label="Game board" role="grid"></section>
       <section id="keyboard" class="keyboard" aria-label="On-screen keyboard"></section>
+      <div id="postWinActions" class="post-actions" hidden>
+        <button id="a2hsBtn" class="btn">Add to Home</button>
+        <button id="resetBtn" class="btn">Reset Today</button>
+      </div>
     </main>
 
     <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
@@ -36,6 +33,18 @@
         </div>
         <div class="actions">
           <button id="installClose" class="btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="successModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="successTitle" hidden>
+      <div class="sheet">
+        <h3 id="successTitle">Nice! You solved it.</h3>
+        <div id="successBody">
+          <p>Come back tomorrow for a new puzzle.</p>
+        </div>
+        <div class="actions">
+          <button id="successClose" class="btn">Close</button>
         </div>
       </div>
     </div>

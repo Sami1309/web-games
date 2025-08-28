@@ -29,6 +29,7 @@ body{
 
 .top{width:100%;max-width:520px;text-align:center;padding:16px 16px 10px}
 .top h1{margin:0;font-size:22px;letter-spacing:0.1em}
+.top{display:none} /* hide top bar per request */
 .top .sub{color:var(--sub);font-size:12px;margin-top:6px}
 .top .actions{margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 
@@ -67,6 +68,8 @@ body{
 
 /* Flip reveal animation: accelerates into midpoint, decelerates out */
 .tile.flip{animation: flip 1000ms linear both;}
+/* Snappier flip */
+.tile.flip{animation: flip 650ms linear both;}
 @keyframes flip{
   0%{
     transform: rotateX(0deg) scaleY(1);
@@ -84,8 +87,12 @@ body{
 .keyboard{width:100%;display:flex;flex-direction:column;gap:8px;align-items:center;margin-top:var(--board-kbd-gap);padding:0 12px calc(env(safe-area-inset-bottom) + 16px)}
 .kbd-row{display:flex;gap:6px;width:100%}
 .kbd-row[data-row="2"]{padding:0 10px} /* slight offset like Wordle */
-.key{background:var(--kbd-bg);color:var(--kbd-text);border:none;border-radius:6px;padding:0 6px;min-width:0;font-weight:700;height:var(--key-h);flex:1 1 0;touch-action:manipulation;white-space:nowrap}
+.key{background:var(--kbd-bg);color:var(--kbd-text);border:none;border-radius:6px;padding:0 6px;min-width:0;font-weight:700;height:var(--key-h);flex:1 1 0;touch-action:manipulation;white-space:nowrap;font-size:18px;letter-spacing:.3px;display:flex;align-items:center;justify-content:center;text-align:center}
+.key[data-key="ENTER"]{font-size:14px}
 .key.wide{flex:2 1 0}
+/* Make Enter and Backspace slightly wider than default wide */
+.key[data-key="ENTER"],
+.key[data-key="DEL"]{flex:2.4 1 0}
 .key.absent{background:var(--absent)}
 .key.present{background:var(--present)}
 .key.correct{background:var(--correct)}
@@ -101,17 +108,23 @@ body{
 /* Minimal modal for A2HS help */
 .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.45)}
 .modal.show{display:flex}
-.sheet{max-width:520px;width:100%;background:#1c1c1d;border:1px solid #333;border-radius:10px;padding:16px;color:#f2f3f5}
+.sheet{max-width:520px;width:100%;background:#1c1c1d;border:1px solid #333;border-radius:10px;padding:16px;color:#f2f3f5;text-align:center}
 .sheet h3{margin:0 0 8px;font-size:16px}
 .sheet p{margin:6px 0;color:#c8c9cc}
-.sheet .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.sheet .actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
+
+/* Post-win buttons under keyboard */
+.post-actions{display:flex;gap:8px;justify-content:center;margin-top:10px}
+[hidden].post-actions{display:none}
 
 @media (max-width:420px){
   :root{--tile-size:48px}
   :root{--key-h:46px}
   :root{--board-kbd-gap:12px}
-  .kbd-row{gap:3px}
-  .kbd-row[data-row="2"]{padding:0 4px}
+  /* slightly increase key spacing on mobile */
+  .kbd-row{gap:5px}
+  .kbd-row[data-row="2"]{padding:0 6px}
+  .key{font-size:17px}
 }
 
 @media (max-width:600px){
