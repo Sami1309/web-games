@@ -110,23 +110,53 @@
   const storageKey = 'wordle-lite-pdt-' + getLA_YMD().label;
   hydrateFromStorage();
 
-  // Dynamic tile sizing to maximize width while respecting height
+  // Dynamic sizing: tiles always square; keys grow to fill leftover (mobile slightly taller).
   function updateTileSize(){
     try{
       const root = document.documentElement;
       const gameEl = document.querySelector('.game');
       const headerEl = document.querySelector('.top');
       const kbdEl = keyboardEl;
-      const cs = getComputedStyle(root);
-      const gap = parseFloat(cs.getPropertyValue('--gap')) || 6;
+      const firstRow = keyboardEl.querySelector('.kbd-row');
+      const csRoot = getComputedStyle(root);
+      const gap = parseFloat(csRoot.getPropertyValue('--gap')) || 6; // board gap
+      const boardKbdGap = parseFloat(csRoot.getPropertyValue('--board-kbd-gap')) || 12; // fixed buffer
       const vwH = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-      const widthAvailable = gameEl.clientWidth; // includes padding
-      const tilesByW = Math.floor((widthAvailable - (5-1)*gap) / 5);
-      const heightAvailable = vwH - headerEl.offsetHeight - kbdEl.offsetHeight - 24; // margin
-      const tilesByH = Math.floor((heightAvailable - (6-1)*gap) / 6);
-      const size = Math.max(44, Math.min(tilesByW, tilesByH));
-      if(isFinite(size) && size > 0){
-        root.style.setProperty('--tile-size', size + 'px');
+      const csGame = getComputedStyle(gameEl);
+      const padL = parseFloat(csGame.paddingLeft) || 0;
+      const padR = parseFloat(csGame.paddingRight) || 0;
+      const padT = parseFloat(csGame.paddingTop) || 0;
+      const padB = parseFloat(csGame.paddingBottom) || 0;
+      const widthAvailable = gameEl.clientWidth - padL - padR; // content width
+      const rowGap = firstRow ? (parseFloat(getComputedStyle(firstRow).columnGap || getComputedStyle(firstRow).gap) || 6) : 6;
+      const kbStyles = getComputedStyle(kbdEl);
+      const kbPadB = parseFloat(kbStyles.paddingBottom) || 0;
+
+      const cols = 5, rows = 6;
+      const isSmall = window.innerWidth <= 600;
+      const minKeyH = isSmall ? 50 : 44; // slightly taller keys on mobile
+      const maxKeyH = isSmall ? 64 : 56; // allow taller cap on mobile
+      const tileW = Math.floor((widthAvailable - (cols-1)*gap) / cols);
+
+      // Available vertical space for game content (board + gap + keyboard)
+      const availH = vwH - headerEl.offsetHeight - padT - padB;
+
+      // Ensure min keyboard + buffers fit; compute max tile height by height
+      const requiredKbdMin = (3*minKeyH) + (2*rowGap) + kbPadB + boardKbdGap + 16; // include bottom cushion
+      const tileHMax = Math.floor((availH - requiredKbdMin - (rows-1)*gap) / rows);
+      let tileSize = Math.min(tileW, tileHMax);
+      if(isSmall) tileSize -= 2; // slightly smaller tiles on mobile
+      tileSize = Math.max(40, tileSize);
+      root.style.setProperty('--tile-size', tileSize + 'px');
+
+      // With chosen tile size, compute leftover for keyboard and set --key-h
+      const boardH = (rows * tileSize) + ((rows-1) * gap);
+      let leftover = availH - boardH - boardKbdGap - kbPadB - 16; // buffers
+      // Key height from leftover (3 rows + 2 gaps)
+      let keyH = Math.floor((leftover - 2*rowGap) / 3);
+      keyH = Math.max(minKeyH, Math.min(keyH, maxKeyH));
+      if(isFinite(keyH) && keyH > 0){
+        root.style.setProperty('--key-h', keyH + 'px');
       }
     } catch {}
   }
