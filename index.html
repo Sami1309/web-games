@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Wordle (Lite, PDT)</title>
+    <meta name="theme-color" content="#121213" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Wordle Lite" />
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -18,13 +23,27 @@
     </main>
 
     <footer class="foot">
-      <button id="resetBtn" class="btn">Reset Today</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="a2hsBtn" class="btn">Add to Home</button>
+        <button id="resetBtn" class="btn">Reset Today</button>
+      </div>
       <span id="dateLabel" class="date-label"></span>
     </footer>
 
     <div id="toast" class="toast" aria-live="polite" aria-atomic="true"></div>
 
+    <div id="installModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="installTitle" hidden>
+      <div class="sheet">
+        <h3 id="installTitle">Add to Home Screen</h3>
+        <div id="installBody">
+          <!-- Filled by JS with platform-specific steps -->
+        </div>
+        <div class="actions">
+          <button id="installClose" class="btn">Close</button>
+        </div>
+      </div>
+    </div>
+
     <script src="script.js"></script>
   </body>
   </html>
-

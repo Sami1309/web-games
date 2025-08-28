@@ -81,9 +81,10 @@
 
   // Build on-screen keyboard
   const rows = ['QWERTYUIOP','ASDFGHJKL','ENTERZXCVBNMDEL'];
-  for(const row of rows){
+  rows.forEach((row, idx) => {
     const rowEl = document.createElement('div');
     rowEl.className = 'kbd-row';
+    rowEl.dataset.row = String(idx+1);
     if(row.startsWith('ENTER')){
       addKey('ENTER', rowEl, true);
       for(const ch of row.slice(5)) addKey(ch, rowEl);
@@ -94,7 +95,7 @@
       for(const ch of row) addKey(ch, rowEl);
     }
     keyboardEl.appendChild(rowEl);
-  }
+  });
 
   function addKey(label, rowEl, wide=false){
     const b = document.createElement('button');
@@ -138,6 +139,64 @@
     localStorage.removeItem(storageKey);
     window.location.reload();
   });
+
+  // Add-to-Home-Screen support and fallback instructions
+  const a2hsBtn = document.getElementById('a2hsBtn');
+  const installModal = document.getElementById('installModal');
+  const installBody = document.getElementById('installBody');
+  const installClose = document.getElementById('installClose');
+  let deferredPrompt = null;
+
+  const isiOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+  function showModal(html){
+    installBody.innerHTML = html;
+    installModal.hidden = false;
+    installModal.classList.add('show');
+  }
+  function hideModal(){
+    installModal.classList.remove('show');
+    installModal.hidden = true;
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    a2hsBtn.style.display = '';
+  });
+
+  if(isStandalone){
+    a2hsBtn.style.display = 'none';
+  } else {
+    a2hsBtn.style.display = '';
+  }
+
+  a2hsBtn.addEventListener('click', async () => {
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if(outcome === 'accepted') showToast('Install started');
+      deferredPrompt = null;
+      return;
+    }
+    if(isiOS){
+      showModal(`
+        <p>iOS (Safari):</p>
+        <p>1) Tap the Share icon (square with arrow).</p>
+        <p>2) Choose <b>Add to Home Screen</b>.</p>
+        <p>3) Tap Add.</p>
+      `);
+    } else {
+      showModal(`
+        <p>Android / other browsers:</p>
+        <p>Open the browser menu and choose <b>Add to Home screen</b> or <b>Install app</b>.</p>
+        <p>If you don't see it, your browser may not support installing pages.</p>
+      `);
+    }
+  });
+
+  installClose.addEventListener('click', hideModal);
 
   function onChar(ch){
     if(curCol >= COLS || done) return;
@@ -216,13 +275,29 @@
   }
 
   function applyResult(r, guess, result, animate=false){
+    const flipMs = 1000; // must match CSS .tile.flip duration
+    const midMs = Math.floor(flipMs/2);
+    const baseDelay = 300; // delay between tiles
     for(let i=0;i<COLS;i++){
       const t = tiles[r][i];
       const st = result[i];
+      const doAt = animate ? i*baseDelay : 0;
       setTimeout(() => {
         t.classList.remove('filled');
-        t.classList.add(st);
-      }, animate ? i*160 : 0);
+        if(animate){
+          t.classList.add('flip');
+          // At flip midpoint, set the color class for reveal
+          setTimeout(() => {
+            t.classList.add(st);
+          }, midMs);
+          t.addEventListener('animationend', function onEnd(){
+            t.classList.remove('flip');
+            t.removeEventListener('animationend', onEnd);
+          });
+        } else {
+          t.classList.add(st);
+        }
+      }, doAt);
       // keyboard coloring with priority: correct > present > absent
       const ch = guess[i];
       const prev = keyboardState.get(ch);
@@ -291,4 +366,3 @@
   }
 
 })();
-
